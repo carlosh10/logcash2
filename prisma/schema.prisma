@@ -1,0 +1,242 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Company {
+  id             String @id @default(cuid())
+  cnpj           String @unique
+  name           String
+  complianceScore Int @default(0)
+  tier           String @default("bronze") // bronze, silver, gold, platinum
+  tradingVolume  Float @default(0)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relations
+  users          User[]
+  paymentAccounts PaymentAccount[]
+  
+  @@map("companies")
+}
+
+model User {
+  id              String @id @default(cuid())
+  email           String @unique
+  name            String
+  companyId       String
+  canApprove      Boolean @default(false)
+  mpcKeyShare     String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  company         Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  approvals       PaymentApproval[]
+  
+  // NextAuth fields
+  emailVerified   DateTime?
+  image           String?
+  accounts        Account[]
+  sessions        Session[]
+  
+  @@map("users")
+}
+
+model PaymentAccount {
+  id                String @id @default(cuid())
+  companyId         String
+  tier              String @default("bronze")
+  
+  // PIX for BRL
+  brlPixKey         String?
+  
+  // US bank account for USD
+  usdAccountNumber  String?
+  usdRoutingNumber  String?
+  
+  // Balances
+  balanceBRL        Float @default(0)
+  balanceUSD        Float @default(0)
+  
+  // Daily limits
+  dailyLimitBRL     Float @default(50000) // R$ 50k
+  dailyLimitUSD     Float @default(10000) // $ 10k
+  
+  // MPC Wallet info
+  mpcWalletId       String?
+  fireblocksVaultId String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  company           Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transactions      Transaction[]
+  fxConversions     FxConversion[]
+  mpcWallet         MpcWallet?
+  
+  @@map("payment_accounts")
+}
+
+model MpcWallet {
+  id            String @id @default(cuid())
+  accountId     String @unique
+  walletId      String @unique
+  vaultId       String @unique
+  walletAddress String
+  provider      String @default("fireblocks")
+  threshold     Int @default(2) // 2-of-3 multisig
+  totalSigners  Int @default(3)
+  status        String @default("ACTIVE")
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  account       PaymentAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  @@map("mpc_wallets")
+}
+
+model Transaction {
+  id                    String @id @default(cuid())
+  accountId             String
+  type                  String // "send", "receive", "conversion"
+  currency              String // "BRL", "USD"
+  amount                Float
+  status                String @default("pending_signature_1") // pending_signature_1, pending_signature_2, broadcasting, complete, failed
+  
+  // Transaction details
+  recipientName         String?
+  recipientAccount      String?
+  invoiceNumber         String?
+  shipmentNumber        String?
+  description           String?
+  
+  // Batch processing
+  batchId               String?
+  
+  // MPC/Fireblocks integration
+  fireblocksTransactionId String?
+  blockchainTxHash      String?
+  requiredSignatures    Int @default(2)
+  collectedSignatures   Int @default(0)
+  
+  // Fees and rates
+  networkFee            Float @default(0)
+  serviceFee            Float @default(0)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Relations
+  account               PaymentAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  approvals             PaymentApproval[]
+  batch                 PaymentBatch? @relation(fields: [batchId], references: [id])
+  
+  @@map("transactions")
+}
+
+model PaymentApproval {
+  id              String @id @default(cuid())
+  transactionId   String
+  approverUserId  String
+  signatureLevel  Int // 1 or 2 (first or second signature)
+  mpcSignature    String?
+  approvedAt      DateTime @default(now())
+  
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  approver        User @relation(fields: [approverUserId], references: [id], onDelete: Cascade)
+  
+  @@unique([transactionId, signatureLevel])
+  @@map("payment_approvals")
+}
+
+model PaymentBatch {
+  id            String @id @default(cuid())
+  recipientName String
+  currency      String // "BRL", "USD"
+  totalAmount   Float
+  paymentCount  Int
+  status        String @default("pending") // pending, processing, complete, failed
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  transactions  Transaction[]
+  
+  @@map("payment_batches")
+}
+
+model FxConversion {
+  id          String @id @default(cuid())
+  accountId   String
+  amountBRL   Float
+  amountUSD   Float
+  fxRate      Float
+  fee         Float @default(0)
+  observations String?
+  status      String @default("pending") // pending, complete, failed
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  account     PaymentAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  @@map("fx_conversions")
+}
+
+// NextAuth required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}

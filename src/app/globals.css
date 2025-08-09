@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-hermes-cream text-old-money-navy;
+    overscroll-behavior: none;
+  }
+
+  /* Mobile-first safe area handling */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Custom scrollbar for mobile */
+  ::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
+}
+
+@layer components {
+  /* Mobile-first button styles */
+  .btn-primary {
+    @apply bg-hermes-gradient text-white font-semibold py-4 px-6 rounded-2xl min-h-[56px] active:scale-95 transition-all duration-150 shadow-lg;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-hermes-orange border-2 border-hermes-orange font-semibold py-4 px-6 rounded-2xl min-h-[56px] active:scale-95 transition-all duration-150;
+  }
+
+  .card-mobile {
+    @apply bg-white rounded-3xl p-6 shadow-lg border border-hermes-sand/20;
+  }
+
+  /* Touch-friendly input styles */
+  .input-mobile {
+    @apply w-full bg-white border-2 border-gray-200 rounded-2xl px-4 py-4 text-lg font-medium min-h-[56px] focus:border-hermes-orange focus:outline-none transition-colors;
+  }
+
+  /* Bottom sheet backdrop */
+  .bottom-sheet-backdrop {
+    @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-40;
+  }
+
+  /* Swipeable card container */
+  .swipeable-container {
+    @apply relative overflow-hidden rounded-3xl;
+  }
+
+  /* Amount display styles */
+  .amount-display {
+    @apply text-4xl sm:text-5xl font-bold text-old-money-navy tabular-nums;
+  }
+
+  .amount-currency {
+    @apply text-2xl sm:text-3xl font-semibold text-old-money-gray;
+  }
+}
+
+@layer utilities {
+  /* Mobile-first spacing utilities */
+  .mobile-container {
+    @apply px-4 sm:px-6 mx-auto max-w-md sm:max-w-lg;
+  }
+
+  .mobile-section {
+    @apply py-4 sm:py-6;
+  }
+
+  /* Touch target utilities */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  .touch-target-large {
+    @apply min-h-[56px] min-w-[56px];
+  }
+
+  /* Animation utilities */
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-subtle {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  /* Status indicators */
+  .status-pending {
+    @apply text-yellow-600 bg-yellow-50 border-yellow-200;
+  }
+
+  .status-success {
+    @apply text-old-money-sage bg-green-50 border-green-200;
+  }
+
+  .status-warning {
+    @apply text-orange-600 bg-orange-50 border-orange-200;
+  }
+
+  .status-error {
+    @apply text-red-600 bg-red-50 border-red-200;
+  }
+}
